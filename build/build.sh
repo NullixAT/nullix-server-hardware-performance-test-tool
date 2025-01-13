@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 SCRIPTDIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-rm $SCRIPTDIR/nshptt_*
-rm $SCRIPTDIR/rsrc_*
+rm -f $SCRIPTDIR/nshptt_*
+rm -f $SCRIPTDIR/rsrc_*
 
 $SCRIPTDIR/go-winres/go-winres make
 cp $SCRIPTDIR/../rsrc_* $SCRIPTDIR
@@ -24,7 +24,7 @@ env GOOS=windows GOARCH=amd64 go build -o $SCRIPTDIR/nshptt_win_amd64.exe $SCRIP
 env GOOS=windows GOARCH=386 go build -o $SCRIPTDIR/nshptt_win_386.exe $SCRIPTDIR/../tool.go  && $SCRIPTDIR/go-winres/go-winres patch $SCRIPTDIR/nshptt_win_386.exe
 env GOOS=windows GOARCH=arm go build -o $SCRIPTDIR/nshptt_win_arm.exe $SCRIPTDIR/../tool.go  
 env GOOS=windows GOARCH=arm64 go build -o $SCRIPTDIR/nshptt_win_arm64.exe $SCRIPTDIR/../tool.go  
-rm $SCRIPTDIR/nshptt_win_*.bak
+rm -f $SCRIPTDIR/nshptt_win_*.bak
 
 env GOOS=linux GOARCH=amd64 go build -o $SCRIPTDIR/nshptt_linux_amd64 $SCRIPTDIR/../tool.go  
 env GOOS=linux GOARCH=386 go build -o $SCRIPTDIR/nshptt_linux_386 $SCRIPTDIR/../tool.go  

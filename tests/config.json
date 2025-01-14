@@ -1,0 +1,8 @@
+{
+  "cpuTestRuntime": 1000,
+  "diskTestWrdFiles": 10,
+  "diskTestWrdFileSize": 1048576,
+  "diskTestRoRuntime": 0,
+  "diskTestRoFiles": 10,
+  "diskTestRoFileSize": 1048576
+}

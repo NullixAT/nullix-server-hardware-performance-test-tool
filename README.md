@@ -49,6 +49,8 @@ Always create an `issue` at github before you start changing things that you wan
 - If you do development on a windows machine, use WSL with a linux distro
 
 ## Build/Compile
-- Requirements: `build/setup.sh`
+- Requirements: run `bash setup.sh`
 
-Just have a look at `build/build.sh` to see a list of all supported platforms and architectures and show to compile them with a single command line call.
+Just have a look at `build.sh` to see a list of all supported platforms and architectures and show to compile them with a single command line call.
+
+Run `bash setup.sh` to build all into `build` directory.

@@ -122,7 +122,7 @@ func main() {
 		fmt.Println("")
 		fmt.Println("  --create-test-files")
 		fmt.Println("  This will create all test files that are required for some disk tests.")
-		fmt.Printf("  ATTENTION: This will use %s of disk space", getFilesizeDesc(config.DiskTestRoFileSize*config.DiskTestRoFiles))
+		fmt.Printf("  ATTENTION: This will use %s of disk space", getFilesizeDesc(config.DiskTestRoFileSize*config.DiskTestRoFiles, ""))
 		fmt.Println("")
 		fmt.Println("  --run")
 		fmt.Println("  Runs the tests")
@@ -186,8 +186,9 @@ func main() {
 
 		if config.DiskTestWrdFiles > 0 {
 			logLinePrefix = "Disk WRD Test: "
-			logPrintf("Started with %d files, each %s\n", config.DiskTestWrdFiles, getFilesizeDesc(config.DiskTestWrdFileSize))
-			logPrintf("Total Filesize %s\n", getFilesizeDesc(config.DiskTestWrdFiles*config.DiskTestWrdFileSize))
+			logPrintf("Started with %d files, each %s\n", config.DiskTestWrdFiles, getFilesizeDesc(config.DiskTestWrdFileSize, ""))
+			totalFileSize := config.DiskTestWrdFiles * config.DiskTestWrdFileSize
+			logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
 			// write all files
 			totalCount := 0
 			for {
@@ -215,7 +216,7 @@ func main() {
 				}
 			}
 			results.WrdWriteAvg = results.WrdWriteTotal / config.DiskTestWrdFiles
-			logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdWriteTotal/1000, results.WrdWriteMin/1000, results.WrdWriteMax/1000, results.WrdWriteAvg/1000)
+			logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdWriteTotal/1000, results.WrdWriteMin/1000, results.WrdWriteMax/1000, results.WrdWriteAvg/1000, getAvgTransferSpeed(results.WrdWriteTotal, totalFileSize))
 			// read all files
 			totalCount = 0
 			for {
@@ -245,7 +246,7 @@ func main() {
 				}
 			}
 			results.WrdReadAvg = results.WrdReadTotal / config.DiskTestWrdFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdReadTotal/1000, results.WrdReadMin/1000, results.WrdReadMax/1000, results.WrdReadAvg/1000)
+			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdReadTotal/1000, results.WrdReadMin/1000, results.WrdReadMax/1000, results.WrdReadAvg/1000, getAvgTransferSpeed(results.WrdReadTotal, totalFileSize))
 			// delete all files
 			totalCount = 0
 			for {
@@ -272,15 +273,16 @@ func main() {
 				}
 			}
 			results.WrdDeleteAvg = results.WrdDeleteTotal / config.DiskTestWrdFiles
-			logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdDeleteTotal/1000, results.WrdDeleteMin/1000, results.WrdDeleteMax/1000, results.WrdDeleteAvg/1000)
+			logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdDeleteTotal/1000, results.WrdDeleteMin/1000, results.WrdDeleteMax/1000, results.WrdDeleteAvg/1000, getAvgTransferSpeed(results.WrdDeleteTotal, totalFileSize))
 
 			logPrint("Ended")
 			logPrintf("%dms total runtime\n", (results.WrdWriteTotal+results.WrdReadTotal+results.WrdDeleteTotal)/1000)
 		}
 		if config.DiskTestRoFiles > 0 {
 			logLinePrefix = "Disk Read-Only Test: "
-			logPrintf("Started with %d files, each %s\n", config.DiskTestRoFiles, getFilesizeDesc(config.DiskTestRoFileSize))
-			logPrintf("Total Filesize %s\n", getFilesizeDesc(config.DiskTestRoFiles*config.DiskTestRoFileSize))
+			totalFileSize := config.DiskTestRoFiles * config.DiskTestRoFileSize
+			logPrintf("Started with %d files, each %s\n", config.DiskTestRoFiles, getFilesizeDesc(config.DiskTestRoFileSize, ""))
+			logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
 			totalCount := 0
 			for {
 				totalCount++
@@ -309,7 +311,7 @@ func main() {
 				}
 			}
 			results.RoReadAvg = results.RoReadTotal / config.DiskTestRoFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.RoReadTotal/1000, results.RoReadMin/1000, results.RoReadMax/1000, results.RoReadAvg/1000)
+			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.RoReadTotal/1000, results.RoReadMin/1000, results.RoReadMax/1000, results.RoReadAvg/1000, getAvgTransferSpeed(results.RoReadTotal, totalFileSize))
 			logPrint("Ended")
 			logPrintf("%dms total runtime\n", results.RoReadTotal/1000)
 		}
@@ -377,13 +379,20 @@ func readConfig() {
 	results.Config = config
 }
 
-func getFilesizeDesc(size int) string {
-	str := strconv.Itoa(size) + " bytes ("
+func getFilesizeDesc(size int, unitAffix string) string {
+	str := strconv.Itoa(size) + " bytes" + unitAffix + " ("
 	if size > 1024*1024 {
 		str += strconv.FormatFloat(float64(float64(size)/1024.0/1024.0), 'f', 2, 64) + " MB"
 	} else if size > 1024 {
 		str += strconv.FormatFloat(float64(float64(size)/1024.0), 'f', 2, 64) + " KB"
 	}
-	str += ")"
+	str += unitAffix + ")"
 	return str
+}
+
+func getAvgTransferSpeed(us int, bytes int) string {
+	if us <= 0 {
+		return ""
+	}
+	return getFilesizeDesc((bytes / us * 1000 * 1000), "/s")
 }

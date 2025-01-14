@@ -2,12 +2,13 @@
 ## Nullix Server Hardware Performance Test Tool (NSHPTT)
 A simple tool to test raw performance of any server, pc or machine. It features CPU and Disk stress tests and can/should be used to compare multiple machines to find bottlenecks.
 
-I created this because after a huge migration from one hosting company/location to another with tons of virtual machines, there was a lot of performance issues at the new location, which where incredible hard to nail down. At the end we found disk performance problems which only showed up clearly when reading files > 100MB... Long story short, this tool was developed to find this issues and have reproducable and comparable results.
+I created this because after a huge migration from one hosting company/location to another with tons of virtual machines, there was a lot of performance issues at the new location, which where incredible hard to nail down. At the end we found disk performance problems which only showed up on very specific workloads that this test simulates. Long story short: This tool was developed to find this issues and have reproducable and comparable results.
 
-![Slideshow](media/slideshow.gif?raw=true "NSHPTT")
+[![Watch the video](media/demo.jpg)](media/demo.mov)
 
 ## Features
 
+- Supported on almost every platform and architecture with pre-built binaries or go source
 - Single Core Performance Test. The test just calculates square-root of random floats as often as it can, for a set amount of time.
   - For servers it's better to test single core performance, as all cores would probably have the same specs anyway. With this method you can compare different infrastructures better then with multi-core tests.
 - Disk Write-Read-Delete Test. Does write, than read, than delete files with random byte contents. Size, location and amount of file can be configured.
@@ -28,9 +29,18 @@ After the tests are stopped, a summary .html/.csv file is generated which you ca
 ## Usage Pre-Built Binaries
 Download a pre-built binary from "Releases" for your OS architecture and run it via command-line. The man page will show up that lists you all possible usages.
 
-    nshptt_linux_amd64 --create-config
-    nshptt_linux_amd64 --create-test-files
-    nshptt_linux_amd64 --run
+    # linux server example - start in a new empty folder    
+    wget https://github.com/NullixAT/nullix-server-hardware-performance-test-tool/releases/latest/download/nshptt_linux_amd64
+    chmod +x nshptt_linux_amd64
+    ./nshptt_linux_amd64 --create-config
+    ./nshptt_linux_amd64 --create-test-files
+    ./nshptt_linux_amd64 --run
+
+    # windows example - start in a new empty folder
+    curl -O -L https://github.com/NullixAT/nullix-server-hardware-performance-test-tool/releases/latest/download/nshptt_win_amd64.exe
+    .\nshptt_win_amd64.exe --create-config
+    .\nshptt_win_amd64.exe --create-test-files
+    .\nshptt_win_amd64.exe --run
 
 > Notice: The pre-compiled binaries can probably be detected by anti-virus software, as they are not signed and AV heuristics maybe struggle with that.
 If you don't trust the pre-compiled binaries, feel free to directly use the `Usage directly with GO` variant. You can review and inspect the script before you run it.
@@ -42,7 +52,7 @@ If you don't trust the pre-compiled binaries, feel free to directly use the `Usa
     go run tool.go --run
 
 
-# CSV Format
+## CSV Format
 The result CSV contains `type;time_microseconds;value;timestamp`.
 - type: Type of test
 - time_microseconds: The time used for actually executing the only test-revelant part, excluding time to setup the test before it can run (file creation, logging, etc...)
@@ -50,7 +60,7 @@ The result CSV contains `type;time_microseconds;value;timestamp`.
 - timestamp: The timestamp of when the actual CSV row has been written
 
 
-# HTML Format
+## HTML Format
 The result HTML contains an easy viewable page with charts to make it easier for humans to read.
 
 ## Development
@@ -62,7 +72,7 @@ Always create an `issue` at github before you start changing things that you wan
 - Add any changes to the `RELEASEINFO.md` for the next release cycle
 
 ## Create release
-We create releases with an automated github actions, see `.github/workflows/release.yml`
+We create releases with automated github actions, see `.github/workflows/release.yml`
 
 
 ## Build/Compile local
@@ -70,4 +80,4 @@ We create releases with an automated github actions, see `.github/workflows/rele
 
 Just have a look at `build.sh` to see a list of all supported platforms and architectures and show to compile them with a single command line call.
 
-Run `bash setup.sh` to build all into `build` directory.
+Run `bash build.sh` to build all into `build` directory.

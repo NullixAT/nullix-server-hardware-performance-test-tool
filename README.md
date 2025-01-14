@@ -42,6 +42,17 @@ If you don't trust the pre-compiled binaries, feel free to directly use the `Usa
     go run tool.go --run
 
 
+# CSV Format
+The result CSV contains `type;time_microseconds;value;timestamp`.
+- type: Type of test
+- time_microseconds: The time used for actually executing the only test-revelant part, excluding time to setup the test before it can run (file creation, logging, etc...)
+- value: The value for values other than time_, for example the CPU cycles
+- timestamp: The timestamp of when the actual CSV row has been written
+
+
+# HTML Format
+The result HTML contains an easy viewable page with charts to make it easier for humans to read.
+
 ## Development
 
 Always create an `issue` at github before you start changing things that you want to be merged into this repository.

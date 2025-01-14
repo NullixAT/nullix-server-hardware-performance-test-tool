@@ -96,7 +96,7 @@ func main() {
 	resultsCsvPath := testFolder + "/results/" + (time.Now().Format("2006-01-02T15-04-05")) + ".csv"
 	resultsHtmlPath := testFolder + "/results/" + (time.Now().Format("2006-01-02T15-04-05")) + ".html"
 
-	resultsCsv := "type;time_ms;value;timestamp\n"
+	resultsCsv := "type;time_microseconds;value;timestamp\n"
 
 	if mode == "help" {
 		fmt.Println("===Nullix Server Hardware Performance Test Tool v" + version + " (NSHPTT)===")
@@ -181,7 +181,7 @@ func main() {
 			logPrint("Ended")
 			logPrintf("%d cycles done\n", results.CpuCycles)
 			logPrintf("%dms total runtime\n", int(time.Since(start).Milliseconds()))
-			resultsCsv += fmt.Sprintf("CPU Test Cycles;%d;%d;%s\n", elapsed, results.CpuCycles, (time.Now().Format(time.RFC3339)))
+			resultsCsv += fmt.Sprintf("CPU Test Cycles;%d;%d;%s\n", elapsed, results.CpuCycles, (time.Now().Format(time.RFC3339Nano)))
 		}
 
 		if config.DiskTestWrdFiles > 0 {
@@ -203,8 +203,8 @@ func main() {
 				crand.Read(data)
 				start := time.Now()
 				os.WriteFile(path, data, 0777)
-				elapsed := int(time.Since(start).Milliseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Write;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339)))
+				elapsed := int(time.Since(start).Microseconds())
+				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Write;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
 				results.WrdWriteDataPoints = append(results.WrdWriteDataPoints, elapsed)
 				results.WrdWriteTotal += elapsed
 				if elapsed > results.WrdWriteMax {
@@ -215,7 +215,7 @@ func main() {
 				}
 			}
 			results.WrdWriteAvg = results.WrdWriteTotal / config.DiskTestWrdFiles
-			logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdWriteTotal, results.WrdWriteMin, results.WrdWriteMax, results.WrdWriteAvg)
+			logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdWriteTotal/1000, results.WrdWriteMin/1000, results.WrdWriteMax/1000, results.WrdWriteAvg/1000)
 			// read all files
 			totalCount = 0
 			for {
@@ -233,8 +233,8 @@ func main() {
 				if len(bytes) != config.DiskTestWrdFileSize {
 					panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
 				}
-				elapsed := int(time.Since(start).Milliseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Read;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339)))
+				elapsed := int(time.Since(start).Microseconds())
+				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Read;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
 				results.WrdReadDataPoints = append(results.WrdReadDataPoints, elapsed)
 				results.WrdReadTotal += elapsed
 				if elapsed > results.WrdReadMax {
@@ -245,7 +245,7 @@ func main() {
 				}
 			}
 			results.WrdReadAvg = results.WrdReadTotal / config.DiskTestWrdFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdReadTotal, results.WrdReadMin, results.WrdReadMax, results.WrdReadAvg)
+			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdReadTotal/1000, results.WrdReadMin/1000, results.WrdReadMax/1000, results.WrdReadAvg/1000)
 			// delete all files
 			totalCount = 0
 			for {
@@ -259,8 +259,8 @@ func main() {
 				}
 				start := time.Now()
 				err := os.Remove(path)
-				elapsed := int(time.Since(start).Milliseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Delete;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339)))
+				elapsed := int(time.Since(start).Microseconds())
+				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Delete;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
 				results.WrdDeleteDataPoints = append(results.WrdDeleteDataPoints, elapsed)
 				errorCheck(err)
 				results.WrdDeleteTotal += elapsed
@@ -272,10 +272,10 @@ func main() {
 				}
 			}
 			results.WrdDeleteAvg = results.WrdDeleteTotal / config.DiskTestWrdFiles
-			logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdDeleteTotal, results.WrdDeleteMin, results.WrdDeleteMax, results.WrdDeleteAvg)
+			logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms\n", results.WrdDeleteTotal/1000, results.WrdDeleteMin/1000, results.WrdDeleteMax/1000, results.WrdDeleteAvg/1000)
 
 			logPrint("Ended")
-			logPrintf("%dms total runtime\n", results.WrdWriteTotal+results.WrdReadTotal+results.WrdDeleteTotal)
+			logPrintf("%dms total runtime\n", (results.WrdWriteTotal+results.WrdReadTotal+results.WrdDeleteTotal)/1000)
 		}
 		if config.DiskTestRoFiles > 0 {
 			logLinePrefix = "Disk Read-Only Test: "
@@ -297,7 +297,7 @@ func main() {
 				if len(bytes) != config.DiskTestRoFileSize {
 					panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
 				}
-				elapsed := int(time.Since(start).Milliseconds())
+				elapsed := int(time.Since(start).Microseconds())
 				resultsCsv += fmt.Sprintf("Disk Read-Only #%d;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339)))
 				results.RoReadDataPoints = append(results.RoReadDataPoints, elapsed)
 				results.RoReadTotal += elapsed
@@ -309,9 +309,9 @@ func main() {
 				}
 			}
 			results.RoReadAvg = results.RoReadTotal / config.DiskTestRoFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.RoReadTotal, results.RoReadMin, results.RoReadMax, results.RoReadAvg)
+			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms\n", results.RoReadTotal/1000, results.RoReadMin/1000, results.RoReadMax/1000, results.RoReadAvg/1000)
 			logPrint("Ended")
-			logPrintf("%dms total runtime\n", results.RoReadTotal)
+			logPrintf("%dms total runtime\n", results.RoReadTotal/1000)
 		}
 		os.WriteFile(resultsCsvPath, []byte(resultsCsv), 0777)
 		resultsJsonStr, err := json.Marshal(results)

@@ -1,3 +1,4 @@
+[![NSHPTT Go Source Tests](https://github.com/NullixAT/nullix-server-hardware-performance-test-tool/actions/workflows/tests_go.yml/badge.svg)](https://github.com/NullixAT/nullix-server-hardware-performance-test-tool/actions/workflows/tests_go.yml)
 ## Nullix Server Hardware Performance Test Tool (NSHPTT)
 A simple tool to test raw performance of any server, pc or machine. It features CPU and Disk stress tests and can/should be used to compare multiple machines to find bottlenecks.
 

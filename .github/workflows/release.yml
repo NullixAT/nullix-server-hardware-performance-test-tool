@@ -8,14 +8,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-          
-      - name: Run build
-        run: bash build.sh
+        with:
+          ref: ${{ github.ref_name }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
+                    
+      - name: Run setup
+        run: bash setup.sh
+          
+      - name: Run tests
+        run: bash tests/run_tests.sh
+
+      - name: Run build
+        run: bash build.sh
 
       - name: Release
         uses: softprops/action-gh-release@v2

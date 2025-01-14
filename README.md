@@ -49,7 +49,11 @@ Always create an `issue` at github before you start changing things that you wan
 - Requirements: [Download Go](https://go.dev/dl/) and [Install Go](https://go.dev/doc/install)
 - If you do development on a windows machine, use WSL with a linux distro
 
-## Build/Compile
+## Create release
+We create releases with an automated action, see ``
+
+
+## Build/Compile local
 - Requirements: run `bash setup.sh`
 
 Just have a look at `build.sh` to see a list of all supported platforms and architectures and show to compile them with a single command line call.

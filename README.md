@@ -48,9 +48,10 @@ Always create an `issue` at github before you start changing things that you wan
 
 - Requirements: [Download Go](https://go.dev/dl/) and [Install Go](https://go.dev/doc/install)
 - If you do development on a windows machine, use WSL with a linux distro
+- Add any changes to the `RELEASEINFO.md` for the next release cycle
 
 ## Create release
-We create releases with an automated action, see ``
+We create releases with an automated github actions, see `.github/workflows/release.yml`
 
 
 ## Build/Compile local

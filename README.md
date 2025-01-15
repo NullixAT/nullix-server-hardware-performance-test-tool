@@ -2,30 +2,34 @@
 ## Nullix Server Hardware Performance Test Tool (NSHPTT)
 A simple tool to test raw performance of any server, pc or machine. It features CPU and Disk stress tests and can/should be used to compare multiple machines to find bottlenecks.
 
-I created this because after a huge migration from one hosting company/location to another with tons of virtual machines, there was a lot of performance issues at the new location, which where incredible hard to nail down. At the end we found disk performance problems which only showed up on very specific workloads that this test simulates. Long story short: This tool was developed to find this issues and have reproducable and comparable results.
+I created this because after a huge migration from one hosting company/location to another with tons of virtual machines, there was a lot of performance issues at the new location, which where incredible hard to nail down. This tool was developed to find this issues and have reasonable, reproducable and comparable results.
 
 ![Features](media/readme_screenshot.webp)
 
 ## Features
 
 - Supported on almost every platform and architecture with pre-built binaries or go source
-- Single Core Performance Test. The test just calculates square-root of random floats as often as it can, for a set amount of time.
-  - For servers it's better to test single core performance, as all cores would probably have the same specs anyway. With this method you can compare different infrastructures better then with multi-core tests.
-- Disk Write-Read-Delete Test. Does write, than read, than delete files with random byte contents. Size, location and amount of file can be configured.
-  - This test is good to test a lot of smaller files. You can simulate even higher IOPS when you lower filesize and increase number of files.
-- Disk Read-Only Test. Does only read a pre-generated set of files with random byte contents. Size, location and amount of file can be configured.
-  - This test should be used to test large files that don't change on disk. You have to create them with `--create-test-files` before the testrun. Disks and storage caches behave differently for random files that always change and files that are almost static.
-- Test network impact by first running the default tests to have a base result. Then change the `--test-folder` to a path that is network attached.
-- All tests, file sizes and file numbers are configurable with a `config.json` file which is generated with `--create-config`
-- Results are logged in several ways: In the console, as a viewable `.html` with charts and as a CSV file to be machine readable.
-- Works probably on every architecture and platform, even if we can't test em all
-- Ready to run binaries in our releases. If u don't trust the binaries, just review and run to source `tool.go` file with Go itself.
-- Repeated tests to generate an average of multiple tests into one result file, with `--run=xx`.
+- CPU Speed Test
+- Disk Speed Test
+- Results are logged in several ways: In the console, as a viewable HTML file with charts and as a CSV file to be machine readable
+- Repeated tests to generate an average of multiple test runs into one result file, with `--run=xx`. Each single data point still visible in HTML and CSV file.
 
 
 ## How it works
-The tool run several tests, stressing different parts of your machine. The machine will be stressed for some time, so maybe don't run it in a production environment or test the config before on a testhost.
-After the tests are stopped, a summary .html/.csv file is generated which you can view directly.
+
+The tool run several tests, stressing different parts of your machine. The machine will be stressed for some time. Just run the tests on a testmachine before and tweak the settings before going to your production environment.
+
+- CPU Tests:  The test just calculates square-root of random floats as often as it can, for a set amount of time.
+- Disk Write-Read-Delete Speed Test: Files are written, readed and deleted with random bytes during the test. Size, location and number of files can be configured.
+- Disk Read-Only Test: Only read files that are generated with random bytes before running the read tests. Size, location and number of files can be configured.
+
+
+## How it not works
+
+You may tend to compare this tool to other HDD test tools (Diskmark, fio, etc..) or CPU test tools (Prime95, etc...). NSHPTT has it's own way of testing. It's just one more tool for you to find issues on your machine. Our tool simulate more a real application behaviour rather then raw hardware penetration.
+Our CPU test for example doesn't stress all cores or don't even a single core to 100%. It just do random calculations in a single program as fast as it can, as probably real world applications would do.
+
+Also the disk tests work differently. Our tests just write/read/delete files on disk with normal application code. We let OS and the programming language do all this things for us. This means, OS disk cache may come into place, application overhead my come into place, etc... All stuff that a real world application also do and have to deal with. You cannot change read/write block size or any other advanced IO options. 
 
 ## Usage Pre-Built Binaries
 Download a pre-built binary from "Releases" for your OS architecture and run it via command-line. The man page will show up that lists you all possible usages.

@@ -36,22 +36,22 @@
     "#1": {
       "0000": {
         "fixed": {
-          "file_version": "0.1.0.0",
-          "product_version": "0.1.0.0"
+          "file_version": "",
+          "product_version": ""
         },
         "info": {
           "0409": {
             "Comments": "",
             "CompanyName": "Nullix.at",
             "FileDescription": "A simple tool to test performance of any server. It features CPU and Disk stress tests and can/should be used to compare multiple machines to find bottlenecks.",
-            "FileVersion": "0.1.0.0",
+            "FileVersion": "",
             "InternalName": "nshptt",
             "LegalCopyright": "",
             "LegalTrademarks": "",
             "OriginalFilename": "",
             "PrivateBuild": "",
             "ProductName": "Nshptt",
-            "ProductVersion": "0.1.0.0",
+            "ProductVersion": "",
             "SpecialBuild": ""
           }
         }

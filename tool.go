@@ -21,51 +21,65 @@ type Config struct {
 	DiskTestRoFileSize  int `json:"diskTestRoFileSize"`
 }
 
-type Results struct {
-	TestStart           string
-	Executable          string
-	Config              Config
-	CpuCycles           int
-	WrdWriteTotal       int
-	WrdWriteMin         int
-	WrdWriteMax         int
-	WrdWriteAvg         int
-	WrdWriteDataPoints  []int
-	WrdReadTotal        int
-	WrdReadMin          int
-	WrdReadMax          int
-	WrdReadAvg          int
-	WrdReadDataPoints   []int
-	WrdDeleteTotal      int
-	WrdDeleteMin        int
-	WrdDeleteMax        int
-	WrdDeleteAvg        int
-	WrdDeleteDataPoints []int
-	RoReadTotal         int
-	RoReadMin           int
-	RoReadMax           int
-	RoReadAvg           int
-	RoReadDataPoints    []int
+type TestSetupData struct {
+	TestStart       string
+	Executable      string
+	ToolVersionInfo string
+	Config          Config
+}
+
+type TestRunCpu struct {
+	DataPoints []int
+}
+
+type TestRunWrd struct {
+	WriteTotal       int
+	WriteMin         int
+	WriteMax         int
+	WriteAvg         int
+	WriteDataPoints  []int
+	ReadTotal        int
+	ReadMin          int
+	ReadMax          int
+	ReadAvg          int
+	ReadDataPoints   []int
+	DeleteTotal      int
+	DeleteMin        int
+	DeleteMax        int
+	DeleteAvg        int
+	DeleteDataPoints []int
+}
+
+type TestRunRo struct {
+	Total      int
+	Min        int
+	Max        int
+	Avg        int
+	DataPoints []int
 }
 
 var config Config
-var results Results
+var testSetupData TestSetupData
 var silent bool = false
 var logLinePrefix string = ""
 var testFolder string = ""
 var configFile string = ""
 
 var (
-	//go:embed VERSION
-	version string
+	version    string = "dev"
+	commitHash string = ""
+	buildTime  string = ""
 	//go:embed report_template.html
 	reportTemplate string
 )
 
 func main() {
 
-	results.TestStart = time.Now().Format(time.RFC3339)
-	results.Executable = os.Args[0]
+	toolVersionInfo := "Version: " + version + ", BuildTime: " + buildTime + ", CommitHash: " + commitHash
+
+	testSetupData.TestStart = time.Now().Format(time.RFC3339)
+	testSetupData.Executable = os.Args[0]
+	testSetupData.ToolVersionInfo = toolVersionInfo
 
 	mode := "help"
 	config = getDefaultConfig()
@@ -73,6 +87,8 @@ func main() {
 	dir, err := os.Getwd()
 	errorCheck(err)
 	testFolder = dir + "/nshptt"
+
+	testRuns := 1
 
 	for _, value := range os.Args {
 		if strings.HasPrefix(value, "--test-folder") {
@@ -89,6 +105,10 @@ func main() {
 			mode = "createTestFiles"
 		} else if value == "--run" {
 			mode = "run"
+		} else if strings.HasPrefix(value, "--run=") {
+			mode = "run"
+			testRuns, err = strconv.Atoi(value[6:])
+			errorCheck(err)
 		}
 	}
 
@@ -96,10 +116,9 @@ func main() {
 	resultsCsvPath := testFolder + "/results/" + (time.Now().Format("2006-01-02T15-04-05")) + ".csv"
 	resultsHtmlPath := testFolder + "/results/" + (time.Now().Format("2006-01-02T15-04-05")) + ".html"
 
-	resultsCsv := "type;time_microseconds;value;timestamp\n"
-
 	if mode == "help" {
-		fmt.Println("===Nullix Server Hardware Performance Test Tool v" + version + " (NSHPTT)===")
+		fmt.Println("===Nullix Server Hardware Performance Test Tool (NSHPTT)===")
+		fmt.Println(toolVersionInfo)
 		fmt.Println("https://github.com/NullixAT/nullix-server-hardware-performance-test-tool")
 		fmt.Println("Notice: Make sure you have enough disk space for all test files")
 		fmt.Println("Notice: Make sure you have enough RAM to load one testfile completely into RAM")
@@ -125,7 +144,10 @@ func main() {
 		fmt.Printf("  ATTENTION: This will use %s of disk space", getFilesizeDesc(config.DiskTestRoFileSize*config.DiskTestRoFiles, ""))
 		fmt.Println("")
 		fmt.Println("  --run")
-		fmt.Println("  Runs the tests")
+		fmt.Println("  Runs the tests once")
+		fmt.Println("")
+		fmt.Println("  --run=xx")
+		fmt.Println("  Runs the tests xx times and accumalte all results into one result file")
 	} else if mode == "createConfig" {
 		if !fileExists(testFolder) {
 			os.Mkdir(testFolder, 0777)
@@ -163,163 +185,184 @@ func main() {
 		}
 		logPrint("Ended")
 	} else if mode == "run" {
-		logPrint("Using testfolder: " + testFolder)
+
 		readConfig()
-		if config.CpuTestRuntime != 0 {
-			logLinePrefix = "CPU Test: "
-			logPrintf("Started with total expected runtime %dms\n", config.CpuTestRuntime)
-			start := time.Now()
-			for {
-				// do some heavy calc
-				math.Sqrt(rand.Float64()/rand.Float64()*rand.Float64() + rand.Float64() - rand.Float64())
-				results.CpuCycles++
-				if config.CpuTestRuntime > 0 && config.CpuTestRuntime <= int(time.Since(start).Milliseconds()) {
-					break
-				}
-			}
-			elapsed := int(time.Since(start).Milliseconds())
-			logPrint("Ended")
-			logPrintf("%d cycles done\n", results.CpuCycles)
-			logPrintf("%dms total runtime\n", int(time.Since(start).Milliseconds()))
-			resultsCsv += fmt.Sprintf("CPU Test Cycles;%d;%d;%s\n", elapsed, results.CpuCycles, (time.Now().Format(time.RFC3339Nano)))
-		}
+		logPrint("Using testfolder: " + testFolder)
 
-		if config.DiskTestWrdFiles > 0 {
-			logLinePrefix = "Disk WRD Test: "
-			logPrintf("Started with %d files, each %s\n", config.DiskTestWrdFiles, getFilesizeDesc(config.DiskTestWrdFileSize, ""))
-			totalFileSize := config.DiskTestWrdFiles * config.DiskTestWrdFileSize
-			logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
-			// write all files
-			totalCount := 0
-			for {
-				totalCount++
-				if totalCount > config.DiskTestWrdFiles {
-					break
-				}
-				path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
-				if fileExists(path) {
-					os.Remove(path)
-				}
-				data := make([]byte, config.DiskTestWrdFileSize)
-				crand.Read(data)
-				start := time.Now()
-				os.WriteFile(path, data, 0777)
-				elapsed := int(time.Since(start).Microseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Write;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
-				results.WrdWriteDataPoints = append(results.WrdWriteDataPoints, elapsed)
-				results.WrdWriteTotal += elapsed
-				if elapsed > results.WrdWriteMax {
-					results.WrdWriteMax = elapsed
-				}
-				if elapsed < results.WrdWriteMin || results.WrdWriteMin == 0 {
-					results.WrdWriteMin = elapsed
-				}
-			}
-			results.WrdWriteAvg = results.WrdWriteTotal / config.DiskTestWrdFiles
-			logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdWriteTotal/1000, results.WrdWriteMin/1000, results.WrdWriteMax/1000, results.WrdWriteAvg/1000, getAvgTransferSpeed(results.WrdWriteTotal, totalFileSize))
-			// read all files
-			totalCount = 0
-			for {
-				totalCount++
-				if totalCount > config.DiskTestWrdFiles {
-					break
-				}
-				path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
-				if !fileExists(path) {
-					panic("Testfile " + path + " removed during test, aborted")
-				}
-				start := time.Now()
-				bytes, err := os.ReadFile(path)
-				errorCheck(err)
-				if len(bytes) != config.DiskTestWrdFileSize {
-					panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
-				}
-				elapsed := int(time.Since(start).Microseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Read;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
-				results.WrdReadDataPoints = append(results.WrdReadDataPoints, elapsed)
-				results.WrdReadTotal += elapsed
-				if elapsed > results.WrdReadMax {
-					results.WrdReadMax = elapsed
-				}
-				if elapsed < results.WrdReadMin || results.WrdReadMin == 0 {
-					results.WrdReadMin = elapsed
-				}
-			}
-			results.WrdReadAvg = results.WrdReadTotal / config.DiskTestWrdFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdReadTotal/1000, results.WrdReadMin/1000, results.WrdReadMax/1000, results.WrdReadAvg/1000, getAvgTransferSpeed(results.WrdReadTotal, totalFileSize))
-			// delete all files
-			totalCount = 0
-			for {
-				totalCount++
-				if totalCount > config.DiskTestWrdFiles {
-					break
-				}
-				path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
-				if !fileExists(path) {
-					panic("Testfile " + path + " removed during test, aborted")
-				}
-				start := time.Now()
-				err := os.Remove(path)
-				elapsed := int(time.Since(start).Microseconds())
-				resultsCsv += fmt.Sprintf("Disk WRD Test #%d, Delete;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano)))
-				results.WrdDeleteDataPoints = append(results.WrdDeleteDataPoints, elapsed)
-				errorCheck(err)
-				results.WrdDeleteTotal += elapsed
-				if elapsed > results.WrdDeleteMax {
-					results.WrdDeleteMax = elapsed
-				}
-				if elapsed < results.WrdDeleteMin || results.WrdDeleteMin == 0 {
-					results.WrdDeleteMin = elapsed
-				}
-			}
-			results.WrdDeleteAvg = results.WrdDeleteTotal / config.DiskTestWrdFiles
-			logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.WrdDeleteTotal/1000, results.WrdDeleteMin/1000, results.WrdDeleteMax/1000, results.WrdDeleteAvg/1000, getAvgTransferSpeed(results.WrdDeleteTotal, totalFileSize))
-
-			logPrint("Ended")
-			logPrintf("%dms total runtime\n", (results.WrdWriteTotal+results.WrdReadTotal+results.WrdDeleteTotal)/1000)
-		}
-		if config.DiskTestRoFiles > 0 {
-			logLinePrefix = "Disk Read-Only Test: "
-			totalFileSize := config.DiskTestRoFiles * config.DiskTestRoFileSize
-			logPrintf("Started with %d files, each %s\n", config.DiskTestRoFiles, getFilesizeDesc(config.DiskTestRoFileSize, ""))
-			logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
-			totalCount := 0
-			for {
-				totalCount++
-				if totalCount > config.DiskTestRoFiles {
-					break
-				}
-				path := testFolder + "/ro_testfile_" + strconv.Itoa(totalCount)
-				if !fileExists(path) {
-					panic("Testfile " + path + " does not exist, create with --create-test-files, aborted")
-				}
-				start := time.Now()
-				bytes, err := os.ReadFile(path)
-				errorCheck(err)
-				if len(bytes) != config.DiskTestRoFileSize {
-					panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
-				}
-				elapsed := int(time.Since(start).Microseconds())
-				resultsCsv += fmt.Sprintf("Disk Read-Only #%d;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339)))
-				results.RoReadDataPoints = append(results.RoReadDataPoints, elapsed)
-				results.RoReadTotal += elapsed
-				if elapsed > results.RoReadMax {
-					results.RoReadMax = elapsed
-				}
-				if elapsed < results.RoReadMin || results.RoReadMin == 0 {
-					results.RoReadMin = elapsed
-				}
-			}
-			results.RoReadAvg = results.RoReadTotal / config.DiskTestRoFiles
-			logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", results.RoReadTotal/1000, results.RoReadMin/1000, results.RoReadMax/1000, results.RoReadAvg/1000, getAvgTransferSpeed(results.RoReadTotal, totalFileSize))
-			logPrint("Ended")
-			logPrintf("%dms total runtime\n", results.RoReadTotal/1000)
-		}
-		os.WriteFile(resultsCsvPath, []byte(resultsCsv), 0777)
-		resultsJsonStr, err := json.Marshal(results)
+		resultsCsvFile, err := os.Create(resultsCsvPath)
 		errorCheck(err)
-		reportTemplate = strings.Replace(reportTemplate, "// REPORT DATA", "window.reportData = "+string(resultsJsonStr), -1)
-		os.WriteFile(resultsHtmlPath, []byte(reportTemplate), 0777)
+		resultsCsvFile.WriteString("type;time_microseconds;value;timestamp\n")
+
+		resultsHtmlFile, err := os.Create(resultsHtmlPath)
+		errorCheck(err)
+		resultsHtmlFile.WriteString(reportTemplate)
+		writeStructToHtmlJsTag(*resultsHtmlFile, "testSetupData", testSetupData)
+
+		for i := 0; i < testRuns; i++ {
+			logLinePrefix = ""
+			if testRuns > 1 {
+				logPrintf("Testrun %d of %d\n", i+1, testRuns)
+			}
+			if config.CpuTestRuntime != 0 {
+				var testResults TestRunCpu
+				logLinePrefix = "CPU Test: "
+				logPrintf("Started with total expected runtime %dms\n", config.CpuTestRuntime)
+				start := time.Now()
+				cycles := 0
+				for {
+					// do some heavy calc
+					math.Sqrt(rand.Float64()/rand.Float64()*rand.Float64() + rand.Float64() - rand.Float64())
+					cycles++
+					if config.CpuTestRuntime > 0 && config.CpuTestRuntime <= int(time.Since(start).Milliseconds()) {
+						break
+					}
+				}
+				testResults.DataPoints = append(testResults.DataPoints, cycles)
+				elapsed := int(time.Since(start).Milliseconds())
+				logPrint("Ended")
+				logPrintf("%d cycles done\n", cycles)
+				logPrintf("%dms total runtime\n", int(time.Since(start).Milliseconds()))
+				resultsCsvFile.WriteString(fmt.Sprintf("CPU Test Cycles;%d;%d;%s\n", elapsed, cycles, (time.Now().Format(time.RFC3339Nano))))
+				writeStructToHtmlJsTag(*resultsHtmlFile, "testRunCpu", testResults)
+			}
+
+			if config.DiskTestWrdFiles > 0 {
+				var testResults TestRunWrd
+				logLinePrefix = "Disk WRD Test: "
+				logPrintf("Started with %d files, each %s\n", config.DiskTestWrdFiles, getFilesizeDesc(config.DiskTestWrdFileSize, ""))
+				totalFileSize := config.DiskTestWrdFiles * config.DiskTestWrdFileSize
+				logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
+				// write all files
+				totalCount := 0
+				for {
+					totalCount++
+					if totalCount > config.DiskTestWrdFiles {
+						break
+					}
+					path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
+					if fileExists(path) {
+						os.Remove(path)
+					}
+					data := make([]byte, config.DiskTestWrdFileSize)
+					crand.Read(data)
+					start := time.Now()
+					os.WriteFile(path, data, 0777)
+					elapsed := int(time.Since(start).Microseconds())
+					resultsCsvFile.WriteString(fmt.Sprintf("Disk WRD Test #%d, Write;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano))))
+					testResults.WriteDataPoints = append(testResults.WriteDataPoints, elapsed)
+					testResults.WriteTotal += elapsed
+					if elapsed > testResults.WriteMax {
+						testResults.WriteMax = elapsed
+					}
+					if elapsed < testResults.WriteMin || testResults.WriteMin == 0 {
+						testResults.WriteMin = elapsed
+					}
+				}
+				testResults.WriteAvg = testResults.WriteTotal / config.DiskTestWrdFiles
+				logPrintf("Writes done in %dms, min: %dms, max: %dms, average: %dms, %s\n", testResults.WriteTotal/1000, testResults.WriteMin/1000, testResults.WriteMax/1000, testResults.WriteAvg/1000, getAvgTransferSpeed(testResults.WriteTotal, totalFileSize))
+				// read all files
+				totalCount = 0
+				for {
+					totalCount++
+					if totalCount > config.DiskTestWrdFiles {
+						break
+					}
+					path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
+					if !fileExists(path) {
+						panic("Testfile " + path + " removed during test, aborted")
+					}
+					start := time.Now()
+					bytes, err := os.ReadFile(path)
+					errorCheck(err)
+					if len(bytes) != config.DiskTestWrdFileSize {
+						panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
+					}
+					elapsed := int(time.Since(start).Microseconds())
+					resultsCsvFile.WriteString(fmt.Sprintf("Disk WRD Test #%d, Read;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano))))
+					testResults.ReadDataPoints = append(testResults.ReadDataPoints, elapsed)
+					testResults.ReadTotal += elapsed
+					if elapsed > testResults.ReadMax {
+						testResults.ReadMax = elapsed
+					}
+					if elapsed < testResults.ReadMin || testResults.ReadMin == 0 {
+						testResults.ReadMin = elapsed
+					}
+				}
+				testResults.ReadAvg = testResults.ReadTotal / config.DiskTestWrdFiles
+				logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", testResults.ReadTotal/1000, testResults.ReadMin/1000, testResults.ReadMax/1000, testResults.ReadAvg/1000, getAvgTransferSpeed(testResults.ReadTotal, totalFileSize))
+				// delete all files
+				totalCount = 0
+				for {
+					totalCount++
+					if totalCount > config.DiskTestWrdFiles {
+						break
+					}
+					path := testFolder + "/wrd_testfile_" + strconv.Itoa(totalCount)
+					if !fileExists(path) {
+						panic("Testfile " + path + " removed during test, aborted")
+					}
+					start := time.Now()
+					err := os.Remove(path)
+					elapsed := int(time.Since(start).Microseconds())
+					resultsCsvFile.WriteString(fmt.Sprintf("Disk WRD Test #%d, Delete;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339Nano))))
+					testResults.DeleteDataPoints = append(testResults.DeleteDataPoints, elapsed)
+					errorCheck(err)
+					testResults.DeleteTotal += elapsed
+					if elapsed > testResults.DeleteMax {
+						testResults.DeleteMax = elapsed
+					}
+					if elapsed < testResults.DeleteMin || testResults.DeleteMin == 0 {
+						testResults.DeleteMin = elapsed
+					}
+				}
+				testResults.DeleteAvg = testResults.DeleteTotal / config.DiskTestWrdFiles
+				logPrintf("Delete done in %dms, min: %dms, max: %dms, average: %dms, %s\n", testResults.DeleteTotal/1000, testResults.DeleteMin/1000, testResults.DeleteMax/1000, testResults.DeleteAvg/1000, getAvgTransferSpeed(testResults.DeleteTotal, totalFileSize))
+
+				logPrint("Ended")
+				logPrintf("%dms total runtime\n", (testResults.WriteTotal+testResults.ReadTotal+testResults.DeleteTotal)/1000)
+				writeStructToHtmlJsTag(*resultsHtmlFile, "testRunWrd", testResults)
+			}
+			if config.DiskTestRoFiles > 0 {
+				var testResults TestRunRo
+				logLinePrefix = "Disk Read-Only Test: "
+				totalFileSize := config.DiskTestRoFiles * config.DiskTestRoFileSize
+				logPrintf("Started with %d files, each %s\n", config.DiskTestRoFiles, getFilesizeDesc(config.DiskTestRoFileSize, ""))
+				logPrintf("Total Filesize %s\n", getFilesizeDesc(totalFileSize, ""))
+				totalCount := 0
+				for {
+					totalCount++
+					if totalCount > config.DiskTestRoFiles {
+						break
+					}
+					path := testFolder + "/ro_testfile_" + strconv.Itoa(totalCount)
+					if !fileExists(path) {
+						panic("Testfile " + path + " does not exist, create with --create-test-files, aborted")
+					}
+					start := time.Now()
+					bytes, err := os.ReadFile(path)
+					errorCheck(err)
+					if len(bytes) != config.DiskTestRoFileSize {
+						panic("Testfile has " + strconv.Itoa(len(bytes)) + "bytes but expected " + strconv.Itoa(config.DiskTestWrdFileSize))
+					}
+					elapsed := int(time.Since(start).Microseconds())
+					resultsCsvFile.WriteString(fmt.Sprintf("Disk Read-Only #%d;%d;;%s\n", totalCount, elapsed, (time.Now().Format(time.RFC3339))))
+					testResults.DataPoints = append(testResults.DataPoints, elapsed)
+					testResults.Total += elapsed
+					if elapsed > testResults.Max {
+						testResults.Max = elapsed
+					}
+					if elapsed < testResults.Min || testResults.Min == 0 {
+						testResults.Min = elapsed
+					}
+				}
+				testResults.Avg = testResults.Total / config.DiskTestRoFiles
+				logPrintf("Read done in %dms, min: %dms, max: %dms, average: %dms, %s\n", testResults.Total/1000, testResults.Min/1000, testResults.Max/1000, testResults.Avg/1000, getAvgTransferSpeed(testResults.Total, totalFileSize))
+				logPrint("Ended")
+				logPrintf("%dms total runtime\n", testResults.Total/1000)
+				writeStructToHtmlJsTag(*resultsHtmlFile, "testRunRo", testResults)
+			}
+		}
+		resultsCsvFile.Close()
 	}
 }
 
@@ -376,7 +419,7 @@ func readConfig() {
 	// jsonFile's content into 'users' which we defined above
 	json.Unmarshal(byteValue, &config)
 
-	results.Config = config
+	testSetupData.Config = config
 }
 
 func getFilesizeDesc(size int, unitAffix string) string {
@@ -395,4 +438,12 @@ func getAvgTransferSpeed(us int, bytes int) string {
 		return ""
 	}
 	return getFilesizeDesc((bytes / us * 1000 * 1000), "/s")
+}
+
+func writeStructToHtmlJsTag(file os.File, dataType string, data interface{}) {
+	json, err := json.Marshal(data)
+	errorCheck(err)
+	file.WriteString("<script>addData('" + dataType + "',")
+	file.Write(json)
+	file.WriteString(")</script>\n")
 }

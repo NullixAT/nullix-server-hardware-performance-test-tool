@@ -20,6 +20,7 @@ I created this because after a huge migration from one hosting company/location 
 - Results are logged in several ways: In the console, as a viewable `.html` with charts and as a CSV file to be machine readable.
 - Works probably on every architecture and platform, even if we can't test em all
 - Ready to run binaries in our releases. If u don't trust the binaries, just review and run to source `tool.go` file with Go itself.
+- Repeated tests to generate an average of multiple tests into one result file, with `--run=xx`.
 
 
 ## How it works

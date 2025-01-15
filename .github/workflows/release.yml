@@ -32,3 +32,11 @@ jobs:
         with:
           files: build/nshptt_*
           body_path: RELEASEINFO.md
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: ./build
+          retention-days: 1

@@ -4,7 +4,7 @@ A simple tool to test raw performance of any server, pc or machine. It features 
 
 I created this because after a huge migration from one hosting company/location to another with tons of virtual machines, there was a lot of performance issues at the new location, which where incredible hard to nail down. At the end we found disk performance problems which only showed up on very specific workloads that this test simulates. Long story short: This tool was developed to find this issues and have reproducable and comparable results.
 
-[![Watch the video](media/demo.jpg)](https://github.com/user-attachments/assets/d95b9224-315f-43d2-a42b-f7c9eefee65c)
+![Features](media/readme_screenshot.webp)
 
 ## Features
 

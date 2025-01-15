@@ -41,7 +41,7 @@ Download a pre-built binary from "Releases" for your OS architecture and run it 
     ./nshptt_linux_amd64 --create-test-files
     ./nshptt_linux_amd64 --run
 
-    # windows example - start in a new empty folder
+    # windows example (terminal, not powershell) - start in a new empty folder
     curl -O -L https://github.com/NullixAT/nullix-server-hardware-performance-test-tool/releases/latest/download/nshptt_win_amd64.exe
     .\nshptt_win_amd64.exe --create-config
     .\nshptt_win_amd64.exe --create-test-files

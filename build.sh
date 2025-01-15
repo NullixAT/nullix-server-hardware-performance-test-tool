@@ -2,12 +2,10 @@
 SCRIPTDIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 BUILDDIR=$SCRIPTDIR/build
 
-GIT_REV=`git rev-parse --abbrev-ref HEAD`
-COMMIT_HASH="$(git rev-parse --short HEAD)"
 BUILD_TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%S%z')
 LDFLAGS=(
-  "-X 'main.version=${GIT_REV}'"
-  "-X 'main.commitHash=${COMMIT_HASH}'"
+  "-X 'main.version=$1'"
+  "-X 'main.commitHash=$2'"
   "-X 'main.buildTime=${BUILD_TIMESTAMP}'"
 )
 

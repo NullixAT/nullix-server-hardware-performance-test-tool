@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
+          cache: false
           
       - name: Display Go version
         run: go version

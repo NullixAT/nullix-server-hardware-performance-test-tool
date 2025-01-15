@@ -15,6 +15,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
+          cache: false
                     
       - name: Run setup
         run: bash setup.sh
@@ -23,7 +24,7 @@ jobs:
         run: bash tests/run_tests.sh
 
       - name: Run build
-        run: bash build.sh
+        run: bash build.sh ${{ github.ref_name }} ${{ github.sha }}
 
       - name: Release
         uses: softprops/action-gh-release@v2

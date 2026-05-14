@@ -1,3 +1,6 @@
+> **Note:** This is a mirror, please visit [the Codeberg Repo](https://codeberg.org/brainfoolong/nullix-server-hardware-performance-test-tool.git) for actual development. [Why Codeberg?](https://github.com/brainfoolong/brainfoolong/blob/main/WHYCODEBERG.md)
+
+
 [![NSHPTT Go Source Tests](https://codeberg.org/BrainFooLong/nullix-server-hardware-performance-test-tool/actions/workflows/tests_go.yml/badge.svg)](https://codeberg.org/BrainFooLong/nullix-server-hardware-performance-test-tool/actions?workflow=tests_go.yml)
 ## Nullix Server Hardware Performance Test Tool (NSHPTT)
 A simple tool to test raw performance of any server, pc or machine. It features CPU and Disk stress tests and can/should be used to compare multiple machines to find bottlenecks.
